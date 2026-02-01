@@ -111,6 +111,7 @@ void print_data(const T *data, const std::vector<size_t> &shape, const std::vect
     }
 }
 
+
 void debug_print(const std::byte *data, const std::vector<size_t> &shape, const std::vector<ptrdiff_t> &strides, llaisysDataType_t dtype) {
     switch (dtype) {
     case LLAISYS_DTYPE_BYTE:
