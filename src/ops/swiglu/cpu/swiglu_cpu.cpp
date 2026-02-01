@@ -6,7 +6,7 @@
 namespace llaisys::ops::cpu {
 template <typename T>
 void swiglu_(T *out , const T* gate ,const T* up , size_t slen ,size_t inter_size ){
-    double temp_swiglu = 0.0;
+    float temp_swiglu = 0.0;
     for (size_t i = 0; i < slen; i++)
     {
         for (size_t j = 0; j < inter_size ;j++)
