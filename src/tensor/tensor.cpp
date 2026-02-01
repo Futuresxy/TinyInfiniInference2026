@@ -228,9 +228,10 @@ tensor_t Tensor::view(const std::vector<size_t> &new_shape) const {
     // 3. 计算新步长 (Row-major)
     std::vector<ptrdiff_t> new_strides(new_shape.size());
     size_t st = 1;
-    for (int i = new_shape.size() - 1; i >= 0; --i) {
-        new_strides[i] = st;
-        st *= new_shape[i];
+    size_t n_dim = new_shape.size();
+    for (size_t i = 1; i <= n_dim; i++) {  // 高纬度 ---> 低纬度
+        new_strides[n_dim - i] = st;
+        st *= new_shape[n_dim- i];
     }
 
     // 4. 构造新 Meta
