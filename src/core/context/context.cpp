@@ -3,7 +3,9 @@
 #include <thread>
 
 namespace llaisys::core {
-
+/*
+记录：“当前线程正在操作哪块板卡？” 以及 “如何找到对应板卡的驱动接口？
+*/
 Context::Context() {
     // All device types, put CPU at the end
     std::vector<llaisysDeviceType_t> device_typs;
@@ -71,6 +73,7 @@ Runtime &Context::runtime() {
 }
 
 // Global API to get thread-local context.
+//每个线程都有自己独立的 Context 实例。
 Context &context() {
     thread_local Context thread_context;
     return thread_context;

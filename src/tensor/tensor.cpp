@@ -18,7 +18,7 @@ tensor_t Tensor::create(const std::vector<size_t> &shape,
     size_t ndim_ = shape.size();
     std::vector<ptrdiff_t> strides(ndim_);
     size_t stride = 1;
-    for (size_t i = 1; i <= ndim_; i++) {
+    for (size_t i = 1; i <= ndim_; i++) {  // 高纬度 ---> 低纬度
         strides[ndim_ - i] = stride;
         stride *= shape[ndim_ - i];
     }
@@ -162,29 +162,106 @@ void Tensor::debug() const {
         debug_print(tmp_tensor->data(), this->shape(), this->strides(), this->dtype());
     }
 }
-
+//内存中是否连续
 bool Tensor::isContiguous() const {
-    TO_BE_IMPLEMENTED();
-    return true;
-}
+    size_t ndim = this->ndim();
+    // 0维或1维张量（如果最后一个步长是1）通常认为是连续的
+    if (ndim == 0) return true;
 
+    // 检查最后一维步长是否为 1
+    if (static_cast<size_t>(this->strides()[ndim - 1]) != 1) {
+        return false;
+    }
+
+    // 比较当前维度的步长是否等于 后一维步长 * 后一维形状
+    for (size_t i = ndim - 1; i > 0; i--) {
+        size_t current_stride = static_cast<size_t>(this->strides()[i - 1]);
+        size_t next_stride = static_cast<size_t>(this->strides()[i]);
+        size_t next_shape = this->shape()[i];
+
+        if (current_stride != next_stride * next_shape) {
+            return false;
+        }
+    }
+    return true;}
+//创建一个新张量，改变原始张量维度的顺序。不涉及数据传输
+//例如，将形状为(2, 3, 4)的张量的维度顺序更改为(4, 2, 3)。
 tensor_t Tensor::permute(const std::vector<size_t> &order) const {
-    TO_BE_IMPLEMENTED();
-    return std::shared_ptr<Tensor>(new Tensor(_meta, _storage));
-}
+    size_t ndim_ = this->ndim();
+    
+    // 1. 校验输入合法性
+    CHECK_ARGUMENT(order.size() == ndim_, "Permute order size must match tensor ndim");
+    
+    std::vector<bool> used(ndim_, false);
+    for (auto d : order) {
+        CHECK_ARGUMENT(d < ndim_, "Permute axis out of range");
+        CHECK_ARGUMENT(!used[d], "Permute order must not contain duplicate axes");
+        used[d] = true;
+    }
 
-tensor_t Tensor::view(const std::vector<size_t> &shape) const {
-    TO_BE_IMPLEMENTED();
-    return std::shared_ptr<Tensor>(new Tensor(_meta, _storage));
-}
+    // 2. 构造新的元数据
+    std::vector<size_t> new_shape(ndim_);
+    std::vector<ptrdiff_t> new_strides(ndim_);
 
+    for (size_t i = 0; i < ndim_; i++) {
+        // 将旧的维度信息映射到新位置
+        new_shape[i] = _meta.shape[order[i]];
+        new_strides[i] = _meta.strides[order[i]];
+    }
+
+    TensorMeta new_meta{this->dtype(), new_shape, new_strides};
+
+    return std::shared_ptr<Tensor>(new Tensor(new_meta, this->_storage,this->_offset));
+}
+//创建一个新张量，通过拆分或合并原始维度将原始张量重塑为给定形状。不涉及数据传输
+//例如，通过合并最后两个维度，将形状为(2, 3, 5)的张量更改为(2, 15)。
+tensor_t Tensor::view(const std::vector<size_t> &new_shape) const {
+    // 1. 校验元素总数是否匹配
+    size_t new_numel = 1;
+    for (auto s : new_shape) new_numel *= s;
+    ASSERT(new_numel == this->numel(), "Total elements must remain the same in view");
+
+    // 2. 只有连续存储的张量才能直接 view (通常逻辑如此)
+    ASSERT(this->isContiguous(), "View only supports contiguous tensors");
+
+    // 3. 计算新步长 (Row-major)
+    std::vector<ptrdiff_t> new_strides(new_shape.size());
+    size_t st = 1;
+    for (int i = new_shape.size() - 1; i >= 0; --i) {
+        new_strides[i] = st;
+        st *= new_shape[i];
+    }
+
+    // 4. 构造新 Meta
+    TensorMeta new_meta{this->dtype(), new_shape, new_strides};
+
+    // 5. 创建新 Tensor 对象，共享 _storage，传递当前的 _offset
+    // 注意：这里调用的是私有构造函数
+    return std::shared_ptr<Tensor>(new Tensor(new_meta, this->_storage, this->_offset));
+}
+//创建一个新张量，沿给定维度，start（包含）和end（不包含）索引对原始张量进行切片操作。
 tensor_t Tensor::slice(size_t dim, size_t start, size_t end) const {
-    TO_BE_IMPLEMENTED();
-    return std::shared_ptr<Tensor>(new Tensor(_meta, _storage));
-}
+    size_t ndim = this->ndim();
+    CHECK_ARGUMENT(dim < ndim, "Slice dimension out of range");
+    CHECK_ARGUMENT(start < end && end <= this->shape()[dim], "Slice indices out of range");
 
-void Tensor::load(const void *src_) {
-    TO_BE_IMPLEMENTED();
+    //如果start不是0，说明有偏移
+    size_t new_offset = _offset + start * _meta.strides[dim] * this->elementSize();
+    std::vector<size_t> new_shape = this->shape();
+    new_shape[dim] = end - start;
+    TensorMeta new_meta{this->dtype(), new_shape, this->strides()};
+
+    return std::shared_ptr<Tensor>(new Tensor(new_meta, this->_storage, new_offset));
+}
+//将主机（cpu）数据加载到张量（可以在设备上）
+void Tensor::load(const void *src_) {  //src_ 指向主机内存
+    core::context().setDevice(this->deviceType(), this->deviceId());
+    llaisysMemcpyKind_t Kind = (this->deviceType() == LLAISYS_DEVICE_CPU) ? LLAISYS_MEMCPY_H2H : LLAISYS_MEMCPY_H2D;
+    core::context().runtime().api()->memcpy_sync(
+        this->data(),
+        src_,
+        this->numel() * this->elementSize(),
+        Kind);
 }
 
 tensor_t Tensor::contiguous() const {
