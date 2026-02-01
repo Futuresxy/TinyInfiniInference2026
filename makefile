@@ -22,7 +22,7 @@ test-all: build
 		echo "Running $$file ..."; \
 		python3 $$file --device cpu; \
 	done
-# 清理编译产物
+# 清理编译
 clean:
 	xmake clean
 	rm -rf python/*.egg-info
