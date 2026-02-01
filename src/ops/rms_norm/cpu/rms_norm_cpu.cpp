@@ -3,7 +3,7 @@
 #include <cmath>
 #include <vector>
 template <typename T>
-void rms_norm_(T *out, const T *in, const T *weight, const size_t M, const size_t K, const long int* stride_W, float eps) {
+void rms_norm_(T *out, const T *in, const T *weight, const size_t M, const size_t K, const int64_t* stride_W, float eps) {
     
     for (size_t row = 0; row < M; row++) {
         const T *in_src = in + row * K; 
@@ -31,7 +31,7 @@ void rms_norm_(T *out, const T *in, const T *weight, const size_t M, const size_
 
 namespace llaisys::ops::cpu {
 
-void rms_norm(std::byte *out, const std::byte *in, const std::byte *weight, const size_t dimM,const size_t dimk, const long int* stride_W, float eps,llaisysDataType_t type) {
+void rms_norm(std::byte *out, const std::byte *in, const std::byte *weight, const size_t dimM,const size_t dimk, const int64_t* stride_W, float eps,llaisysDataType_t type) {
 
     switch (type) {
     case LLAISYS_DTYPE_F32:

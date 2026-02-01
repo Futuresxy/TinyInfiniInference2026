@@ -17,7 +17,7 @@ python-install:
 	pip install -e ./python/
 
 # 运行目录下所有的算子测试
-test-all: build
+test-all: all
 	@for file in $(shell ls test/ops/*.py); do \
 		echo "Running $$file ..."; \
 		python3 $$file --device cpu; \

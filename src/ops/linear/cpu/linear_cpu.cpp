@@ -5,7 +5,7 @@
 template <typename T>
 void linear_(T *out, const T *in, const T *weight, const T *bias, llaisysDataType_t type, 
              const size_t M, const size_t N, const size_t K, 
-             const long int *in_stride, const long int *weight_stride) {
+             const int64_t *in_stride, const int64_t *weight_stride) {
 
     for (size_t row = 0; row < M; row++) {
         // in_src 只与 row 有关
@@ -35,7 +35,7 @@ void linear_(T *out, const T *in, const T *weight, const T *bias, llaisysDataTyp
 namespace llaisys::ops::cpu {
 
 void linear(std::byte *out, const std::byte *in, const std::byte *weight, const std::byte *bias, llaisysDataType_t type,
-            const size_t M, const size_t N, const size_t K, const long int *in_stride, const long int *weight_stride) {
+            const size_t M, const size_t N, const size_t K, const int64_t *in_stride, const int64_t *weight_stride) {
 
     switch (type) {
     case LLAISYS_DTYPE_F32:

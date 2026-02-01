@@ -3,7 +3,7 @@
 #include <cmath>
 
 template <typename T>
-void embedding_( T *out, const int64_t *index, const T *weight, size_t index_numel, const long int * stride) {
+void embedding_( T *out, const int64_t *index, const T *weight, size_t index_numel, const int64_t * stride) {
    
     for (size_t i = 0; i < index_numel; i++) {
         int64_t idx = index[i];
@@ -25,7 +25,7 @@ void embedding_( T *out, const int64_t *index, const T *weight, size_t index_num
 
 namespace llaisys::ops::cpu {
     
-void embedding(std::byte * out, std::byte * index, const std::byte * weight, const llaisysDataType_t type, size_t index_numel, const long int * stride) {
+void embedding(std::byte * out, std::byte * index, const std::byte * weight, const llaisysDataType_t type, size_t index_numel, const int64_t * stride) {
 
     switch (type) {
         case LLAISYS_DTYPE_F32:
